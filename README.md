@@ -10,11 +10,13 @@ Slack application for live NBA scores
 
 **@nbascore team X**
 > Retrieves the score of the scheduled games for the team X.
+
 ![@nbascore team pacers](https://i.imgur.com/pUIy2uy.png)
 
 
 **@nbascore player X**
 > Retrieves the player statistics (points, assists, rebounds) for the last game he played.
+
 ![@nbascore player osman](https://i.imgur.com/w235MRn.png)
 
 
