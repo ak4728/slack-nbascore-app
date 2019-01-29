@@ -6,9 +6,11 @@ from slackclient import SlackClient
 from nba_api.stats.endpoints import *
 import urllib.request, json, datetime
 from nba_api.stats.static import players
+from nba_api.stats.static import teams
 
-# instantiate Slack client - Enter Bot User OAuth Access Token below
-slack_client = SlackClient('You need to find the bot access token from Slack apps (OAuth & Permissions) // https://api.slack.com/apps/AFJ3THYF7')
+
+# instantiate Slack client
+slack_client = SlackClient('xoxb-522779484720-529347299478-znEJXj1wpUGzZaCB1AThrSeB')
 # starterbot's user ID in Slack: value is assigned after the bot starts up
 starterbot_id = None
 
@@ -175,16 +177,19 @@ def handle_command(command, channel):
 
 
 if __name__ == "__main__":
-    if slack_client.rtm_connect(with_team_state=False):
-        print("Starter Bot connected and running!")
-        # Read bot's user ID by calling Web API method `auth.test`
+    try:
+        if slack_client.rtm_connect(with_team_state=False):
+            print("Starter Bot connected and running!")
+            # Read bot's user ID by calling Web API method `auth.test`
 
-        starterbot_id = slack_client.api_call("auth.test")["user_id"]
-        print(starterbot_id )
-        while True:
-            command, channel = parse_bot_commands(slack_client.rtm_read())
-            if command:
-                handle_command(command, channel)
-            time.sleep(RTM_READ_DELAY)
-    else:
-        print("Connection failed. Exception traceback printed above.")
+            starterbot_id = slack_client.api_call("auth.test")["user_id"]
+            print(starterbot_id )
+            while True:
+                command, channel = parse_bot_commands(slack_client.rtm_read())
+                if command:
+                    handle_command(command, channel)
+                time.sleep(RTM_READ_DELAY)
+        else:
+            print("Connection failed. Exception traceback printed above.")
+    except:
+        time.sleep(60)
