@@ -20,5 +20,11 @@ Slack application for live NBA scores
 ![@nbascore player osman](https://i.imgur.com/w235MRn.png)
 
 
+**@nbascore standings X**
+> Retrieves the standings for the given conference
+
+![@nbascore standings east](https://i.imgur.com/sGAYm7N.png)
+
+
 **@nbascore tukur**
 > The bot expresses its love to someone.
