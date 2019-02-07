@@ -167,13 +167,11 @@ def handle_command(command, channel):
     # Just some answers to random questions
     elif command.startswith(STANDINGS_COMMAND):
         print("Standings request.")
-        #try:
-        conference = command.rsplit(" ")[1]
-        response = "{} Conference Standings".format(conference.upper())
-        a = getStandings(conference)
-        response = response + a
-        #except:
-         #   response= "Please provide a conference name."
+        try:
+            conference = command.rsplit(" ")[1]
+            response = getStandings(conference)
+        except:
+           response= "Please provide a conference name."
         
     elif command.startswith("nasilsin"):
         response = "Iyiyiz abi, sukur..."
