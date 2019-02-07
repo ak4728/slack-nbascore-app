@@ -7,10 +7,10 @@ from nba_api.stats.endpoints import *
 import urllib.request, json, datetime
 from nba_api.stats.static import players
 from nba_api.stats.static import teams
-
+from prettytable import PrettyTable
 
 # instantiate Slack client
-slack_client = SlackClient('s')
+slack_client = SlackClient('')
 # starterbot's user ID in Slack: value is assigned after the bot starts up
 starterbot_id = None
 
@@ -22,6 +22,7 @@ TUKUR_COMMAND = "tukur"
 SPORTS_COMMAND = "nba"
 TEAM_COMMAND = "team"
 PLAYER_COMMAND = "player"
+STANDINGS_COMMAND = "standings"
 SELECT_COMMAND = "select"
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
        
@@ -38,6 +39,26 @@ def parse_bot_commands(slack_events):
             if user_id == starterbot_id:
                 return message, event["channel"]
     return None, None
+
+def getStandings(conference):
+    """
+        Retrieves player stats for the last game.
+        Career results can be added in the future
+    """
+    conference = conference.lower()
+    t = PrettyTable(['Team', 'W-L'])
+    now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]
+    url = "http://data.nba.net/data/10s/prod/v1/{}/standings_conference.json".format(now)
+    with urllib.request.urlopen(url) as url2:
+        data = json.loads(url2.read().decode())
+        teamList=data['league']['standard']['conference'][conference]
+        response = "{} Conference Standings\n".format(conference.capitalize())
+        for team in teamList:
+            teamName = str(teams.find_team_name_by_id(team['teamId'])['full_name'])
+            if teamName == "Brooklyn Nets":
+                teamName = teamName + " :nets:"
+            response = response +  "|{}-{}| {}\n".format(str(team['win']),str(team['loss']),teamName)      
+    return response
 
 def getPlayer(playerId,fullname):
     """
@@ -76,6 +97,10 @@ def gameFinder(response, deltahours, teamid='missing'):
             hteamid = data['games'][i]['hTeam']['teamId']
             vteamname = teams.find_team_name_by_id(vteamid)['full_name']
             hteamname = teams.find_team_name_by_id(hteamid)['full_name']
+            if vteamname == "Brooklyn Nets":
+                vteamname = vteamname + " :nets:"
+            if hteamname == "Brooklyn Nets":
+                hteamname = hteamname + " :nets:"
             vscore = data['games'][i]['vTeam']['score']
             hscore = data['games'][i]['hTeam']['score']
             gsid = data['games'][i]['statusNum']
@@ -140,6 +165,16 @@ def handle_command(command, channel):
         except:
             response = "No player with that name."
     # Just some answers to random questions
+    elif command.startswith(STANDINGS_COMMAND):
+        print("Standings request.")
+        #try:
+        conference = command.rsplit(" ")[1]
+        response = "{} Conference Standings".format(conference.upper())
+        a = getStandings(conference)
+        response = response + a
+        #except:
+         #   response= "Please provide a conference name."
+        
     elif command.startswith("nasilsin"):
         response = "Iyiyiz abi, sukur..."
     elif command.endswith("?"):
@@ -148,23 +183,23 @@ def handle_command(command, channel):
         response = "Sure...write some more code then I can do that!"
     # Team score calls
     elif command.startswith(TEAM_COMMAND):
-    	print("Request for 1 Team.")
-    	try:
-	    	tname = command.rsplit(" ")
-	    	response = "Team result:"+"\n"
-	    	nbateam = teams.find_teams_by_full_name(tname[1])
-	    	teamid =  str(nbateam[0]['id'])
-	    	response = gameFinder(response,0,teamid)
-    	except:
-    		response = "Please provide a team name."
+        print("Request for 1 Team.")
+        try:
+            tname = command.rsplit(" ")
+            response = "Team result:"+"\n"
+            nbateam = teams.find_teams_by_full_name(tname[1])
+            teamid =  str(nbateam[0]['id'])
+            response = gameFinder(response,0,teamid)
+        except:
+            response = "Please provide a team name."
 
     elif command.startswith(SPORTS_COMMAND):
-    	print("Request for all teams")
-    	response = "All games today:"+"\n"
-    	response = gameFinder(response,0)
+        print("Request for all teams")
+        response = "All games today:"+"\n"
+        response = gameFinder(response,0)
 
-	
-    		
+    
+            
 
     # Sends the response back to the channel
     slack_client.api_call(
