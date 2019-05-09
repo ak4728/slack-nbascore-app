@@ -26,7 +26,29 @@ STANDINGS_COMMAND = "standings"
 SELECT_COMMAND = "select"
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
        
-        
+def post_message(msg, recipient):
+    return self.slack_client.api_call(
+        "chat.postMessage",
+        channel='nba-stüdyo',
+        text=msg,
+        as_user=True
+    )
+
+def post_message_to_channel(response):
+    response=response
+    default_response = "default aq."
+    response = "All games today:"+"\n"
+    response = gameFinder(response,0)
+    slack_client.api_call(
+        "chat.postMessage",
+        channel='nba-stüdyo',
+        text=response or default_response,
+        as_user=True
+    )
+
+
+
+
 def parse_bot_commands(slack_events):
     """
         Parses a list of events coming from the Slack RTM API to find bot commands.
@@ -54,10 +76,7 @@ def getStandings(conference):
         teamList=data['league']['standard']['conference'][conference]
         response = "{} Conference Standings\n".format(conference.capitalize())
         for team in teamList:
-            teamName = str(teams.find_team_name_by_id(team['teamId'])['full_name'])
-            if teamName == "Brooklyn Nets":
-                teamName = teamName + " :nets:"
-            response = response +  "|{}-{}| {}\n".format(str(team['win']),str(team['loss']),teamName)      
+            response = response +  "{}   \t |{}-{}|\n".format(str(teams.find_team_name_by_id(team['teamId'])['full_name']),str(team['win']),str(team['loss']))      
     return response
 
 def getPlayer(playerId,fullname):
@@ -97,10 +116,6 @@ def gameFinder(response, deltahours, teamid='missing'):
             hteamid = data['games'][i]['hTeam']['teamId']
             vteamname = teams.find_team_name_by_id(vteamid)['full_name']
             hteamname = teams.find_team_name_by_id(hteamid)['full_name']
-            if vteamname == "Brooklyn Nets":
-                vteamname = vteamname + " :nets:"
-            if hteamname == "Brooklyn Nets":
-                hteamname = hteamname + " :nets:"
             vscore = data['games'][i]['vTeam']['score']
             hscore = data['games'][i]['hTeam']['score']
             gsid = data['games'][i]['statusNum']
@@ -167,11 +182,13 @@ def handle_command(command, channel):
     # Just some answers to random questions
     elif command.startswith(STANDINGS_COMMAND):
         print("Standings request.")
-        try:
-            conference = command.rsplit(" ")[1]
-            response = getStandings(conference)
-        except:
-           response= "Please provide a conference name."
+        #try:
+        conference = command.rsplit(" ")
+        response = "{} Conference Standings".format(conference.upper())
+        response = response + getStandings(conference)
+        print(response)
+        #except:
+         #   response= "Please provide a conference name."
         
     elif command.startswith("nasilsin"):
         response = "Iyiyiz abi, sukur..."
@@ -212,17 +229,26 @@ def handle_command(command, channel):
 if __name__ == "__main__":
     try:
         if slack_client.rtm_connect(with_team_state=False):
+            
             print("Starter Bot connected and running!")
             # Read bot's user ID by calling Web API method `auth.test`
 
             starterbot_id = slack_client.api_call("auth.test")["user_id"]
             print(starterbot_id )
             while True:
+                curent_time = datetime.datetime.now()
+                current_hour = curent_time.hour
+                current_minute = curent_time.minute
+                if current_hour == 21:
+                    if current_minute ==0:
+                        post_message_to_channel('test')
+                        time.sleep(60.01)
                 command, channel = parse_bot_commands(slack_client.rtm_read())
                 if command:
                     handle_command(command, channel)
                 time.sleep(RTM_READ_DELAY)
         else:
             print("Connection failed. Exception traceback printed above.")
-    except:
+    except Exception as exc:
+        print(exc)
         time.sleep(60)
