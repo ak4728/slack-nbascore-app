@@ -10,9 +10,10 @@ from nba_api.stats.static import teams
 from prettytable import PrettyTable
 
 # instantiate Slack client
-slack_client = SlackClient('')
+slack_client = SlackClient(token=os.environ['SLACK_API_TOKEN'])
+
 # starterbot's user ID in Slack: value is assigned after the bot starts up
-starterbot_id = None
+starterbot_id = 'AFJ3THYF7'
 
 
 # constants
@@ -29,7 +30,7 @@ MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 def post_message(msg, recipient):
     return self.slack_client.api_call(
         "chat.postMessage",
-        channel='nba-stüdyo',
+        channel='test',
         text=msg,
         as_user=True
     )
@@ -41,12 +42,10 @@ def post_message_to_channel(response):
     response = gameFinder(response,0)
     slack_client.api_call(
         "chat.postMessage",
-        channel='nba-stüdyo',
+        channel='test',
         text=response or default_response,
         as_user=True
     )
-
-
 
 
 def parse_bot_commands(slack_events):
@@ -94,7 +93,7 @@ def getPlayer(playerId,fullname):
     return text
 
 
-def gameFinder(response, deltahours, teamid='missing'):
+def gameFinder(response, deltahours, teamid='missing', now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]):
     """
         Retrieves games and scores for today.
         Delta hours can be used to retrieve historical results in the future.
@@ -108,7 +107,8 @@ def gameFinder(response, deltahours, teamid='missing'):
     status = [':no_entry:',':basketball:',':checkered_flag:']
     points = 0
     now = str(datetime.datetime.now()-datetime.timedelta(hours=deltahours)).replace('-','')[0:8]
-    url = "http://data.nba.net/prod/v1/{}/scoreboard.json".format(now)
+    url = "http://data.nba.net/data/10s/prod/v1/{}/scoreboard.json".format(now)
+    print((urllib.request.urlopen(url)).getcode())
     with urllib.request.urlopen(url) as url2:
         data = json.loads(url2.read().decode())
         for i in range(len(data['games'])):
@@ -141,6 +141,7 @@ def handle_command(command, channel):
     """
     # Default response is help text for the user
     default_response = "La bi dur gotunden kod uydurma ya. *{}* ne amk?".format(command)
+    now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]
     global pname
     # Finds and executes the given command, filling in response
     response = None
@@ -211,7 +212,12 @@ def handle_command(command, channel):
     elif command.startswith(SPORTS_COMMAND):
         print("Request for all teams")
         response = "All games today:"+"\n"
-        response = gameFinder(response,0)
+        try:
+            response = gameFinder(response,0)
+        except:
+            response = "No games are scheduled today or nbascore cannot locate them.The latest game I can find is:\n"
+            # Find the latest game
+            response = gameFinder(response,0)
 
     
             
