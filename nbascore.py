@@ -70,12 +70,15 @@ def getStandings(conference):
     t = PrettyTable(['Team', 'W-L'])
     now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]
     url = "http://data.nba.net/data/10s/prod/v1/{}/standings_conference.json".format(now)
-    with urllib.request.urlopen(url) as url2:
-        data = json.loads(url2.read().decode())
-        teamList=data['league']['standard']['conference'][conference]
-        response = "{} Conference Standings\n".format(conference.capitalize())
-        for team in teamList:
-            response = response +  "{}   \t |{}-{}|\n".format(str(teams.find_team_name_by_id(team['teamId'])['full_name']),str(team['win']),str(team['loss']))      
+    try:
+        with urllib.request.urlopen(url) as url2:
+            data = json.loads(url2.read().decode())
+            teamList=data['league']['standard']['conference'][conference]
+            response = "{} Conference Standings\n".format(conference.capitalize())
+            for team in teamList:
+                response = response +  "{}   \t |{}-{}|\n".format(str(teams.find_team_name_by_id(team['teamId'])['full_name']),str(team['win']),str(team['loss']))      
+    except:
+        response = '\nEither nbascore cannot locate standings or the season has not started yet.'
     return response
 
 def getPlayer(playerId,fullname):
@@ -106,10 +109,16 @@ def gameFinder(response, deltahours, teamid='missing', now = str(datetime.dateti
     """
     status = [':no_entry:',':basketball:',':checkered_flag:']
     points = 0
-    now = str(datetime.datetime.now()-datetime.timedelta(hours=deltahours)).replace('-','')[0:8]
     url = "http://data.nba.net/data/10s/prod/v1/{}/scoreboard.json".format(now)
-    print((urllib.request.urlopen(url)).getcode())
-    with urllib.request.urlopen(url) as url2:
+    req = urllib.request.urlopen(url)
+    # try:
+    #     url = "http://data.nba.net/data/10s/prod/v1/{}/scoreboard.json".format(now)
+    #     req = urllib.request.urlopen(url)
+    # except:
+    #     now = getClosestDate()
+    #     url = "http://data.nba.net/data/10s/prod/v1/{}/scoreboard.json".format(now)
+    #     req = urllib.request.urlopen(url)
+    with req as url2:
         data = json.loads(url2.read().decode())
         for i in range(len(data['games'])):
             vteamid = data['games'][i]['vTeam']['teamId']
@@ -125,6 +134,24 @@ def gameFinder(response, deltahours, teamid='missing', now = str(datetime.dateti
                 response = response + '{} {} {} - {} {} \n'.format( status[gsid-1], str(vteamname), str(vscore), str(hscore), str(hteamname) )
     return response
 
+def getClosestDate(url = "http://data.nba.net/data/10s/prod/v1/calendar.json", now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]):
+    with urllib.request.urlopen(url) as url2:
+        data = json.loads(url2.read().decode())
+        urlDict = {}
+        for dates,games in data.items():
+            try:
+                # if the number of games are bigger than 0
+                if games>0:
+                    # To make sure that now is bigger than the date
+                    if int(dates) < int(now): 
+                        urlDict[dates] = abs(int(dates)-int(now))
+            except:
+                urlDict[dates] = 9999
+        if data[now] == 0:
+            foundDate = min(urlDict.items(), key=lambda x: x[1])[0]
+        else:
+            foundDate = now
+        return foundDate
 
 def parse_direct_mention(message_text):
     """
@@ -183,13 +210,12 @@ def handle_command(command, channel):
     # Just some answers to random questions
     elif command.startswith(STANDINGS_COMMAND):
         print("Standings request.")
-        #try:
-        conference = command.rsplit(" ")
-        response = "{} Conference Standings".format(conference.upper())
-        response = response + getStandings(conference)
-        print(response)
-        #except:
-         #   response= "Please provide a conference name."
+        try:
+            conference = command.rsplit(" ")[1]
+            response = "{} Conference Standings".format(conference.upper())
+            response = response + getStandings(conference)
+        except:
+            response= "Please provide a conference name."
         
     elif command.startswith("nasilsin"):
         response = "Iyiyiz abi, sukur..."
@@ -211,16 +237,14 @@ def handle_command(command, channel):
 
     elif command.startswith(SPORTS_COMMAND):
         print("Request for all teams")
-        response = "All games today:"+"\n"
-        try:
+        if now == getClosestDate():
+            response = "All games today:"+"\n"
             response = gameFinder(response,0)
-        except:
-            response = "No games are scheduled today or nbascore cannot locate them.The latest game I can find is:\n"
-            # Find the latest game
-            response = gameFinder(response,0)
+        else:
+            response = "No games are scheduled today or nbascore cannot locate them.\n The latest game I can find was on {}:\n".format(str(datetime.datetime.strptime(getClosestDate(), "%Y%m%d"))[0:10])
+            response = gameFinder(response,0,now=getClosestDate())
 
-    
-            
+   
 
     # Sends the response back to the channel
     slack_client.api_call(
