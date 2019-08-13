@@ -137,21 +137,25 @@ def gameFinder(response, deltahours, teamid='missing', now = str(datetime.dateti
 def getClosestDate(url = "http://data.nba.net/data/10s/prod/v1/calendar.json", now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]):
     with urllib.request.urlopen(url) as url2:
         data = json.loads(url2.read().decode())
-        urlDict = {}
+        beforeGames = {}
+        nextGames = {}
         for dates,games in data.items():
             try:
                 # if the number of games are bigger than 0
                 if games>0:
                     # To make sure that now is bigger than the date
                     if int(dates) < int(now): 
-                        urlDict[dates] = abs(int(dates)-int(now))
+                        beforeGames[dates] = abs(int(dates)-int(now))
+                    else:
+                        nextGames[dates] = abs(int(dates)-int(now))
             except:
-                urlDict[dates] = 9999
+                beforeGames[dates] = 9999
+                nextGames[dates] = 9999
         if data[now] == 0:
-            foundDate = min(urlDict.items(), key=lambda x: x[1])[0]
+            foundDates = min(beforeGames.items(), key=lambda x: x[1])[0],min(nextGames.items(), key=lambda x: x[1])[0]
         else:
-            foundDate = now
-        return foundDate
+            foundDates = now, now
+        return foundDates
 
 def parse_direct_mention(message_text):
     """
@@ -237,12 +241,14 @@ def handle_command(command, channel):
 
     elif command.startswith(SPORTS_COMMAND):
         print("Request for all teams")
-        if now == getClosestDate():
+        if now == getClosestDate()[0]:
             response = "All games today:"+"\n"
             response = gameFinder(response,0)
         else:
-            response = "No games are scheduled today or nbascore cannot locate them.\n The latest game I can find was on {}:\n".format(str(datetime.datetime.strptime(getClosestDate(), "%Y%m%d"))[0:10])
-            response = gameFinder(response,0,now=getClosestDate())
+            response = "No games are scheduled today or nbascore cannot locate them.\n The latest game I can find was on {}:\n".format(str(datetime.datetime.strptime(getClosestDate()[0], "%Y%m%d"))[0:10])
+            response = gameFinder(response,0,now=getClosestDate()[0])
+            response += "\nAlso, the next game will be on {}:\n".format(str(datetime.datetime.strptime(getClosestDate()[1], "%Y%m%d"))[0:10])
+            response = gameFinder(response,0,now=getClosestDate()[1])
 
    
 
