@@ -264,7 +264,7 @@ def handle_command(command, channel):
 
 if __name__ == "__main__":
     try:
-        if slack_client.rtm_connect(with_team_state=False):
+        if slack_client.rtm_connect(auto_reconnect=True,with_team_state=False):
             
             print("Starter Bot connected and running!")
             # Read bot's user ID by calling Web API method `auth.test`
