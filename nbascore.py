@@ -1,4 +1,4 @@
-import os
+import os, sys
 import random
 import time
 import re
@@ -107,9 +107,11 @@ def gameFinder(response, deltahours, teamid='missing', now = str(datetime.dateti
             else:
                 deltahours = 0
     """
+
     status = [':no_entry:',':basketball:',':checkered_flag:']
     points = 0
     url = "http://data.nba.net/data/10s/prod/v1/{}/scoreboard.json".format(now)
+
     req = urllib.request.urlopen(url)
     # try:
     #     url = "http://data.nba.net/data/10s/prod/v1/{}/scoreboard.json".format(now)
@@ -120,11 +122,18 @@ def gameFinder(response, deltahours, teamid='missing', now = str(datetime.dateti
     #     req = urllib.request.urlopen(url)
     with req as url2:
         data = json.loads(url2.read().decode())
+
         for i in range(len(data['games'])):
             vteamid = data['games'][i]['vTeam']['teamId']
             hteamid = data['games'][i]['hTeam']['teamId']
-            vteamname = teams.find_team_name_by_id(vteamid)['full_name']
-            hteamname = teams.find_team_name_by_id(hteamid)['full_name']
+            try:
+                vteamname = teams.find_team_name_by_id(vteamid)['full_name']
+            except:
+                vteamname = data['games'][i]['vTeam']['triCode']
+            try:
+                hteamname = teams.find_team_name_by_id(hteamid)['full_name']
+            except:
+                hteamname = data['games'][i]['vTeam']['triCode']
             vscore = data['games'][i]['vTeam']['score']
             hscore = data['games'][i]['hTeam']['score']
             gsid = data['games'][i]['statusNum']
@@ -241,14 +250,18 @@ def handle_command(command, channel):
 
     elif command.startswith(SPORTS_COMMAND):
         print("Request for all teams")
-        if now == getClosestDate()[0]:
-            response = "All games today:"+"\n"
-            response = gameFinder(response,0)
-        else:
-            response = "No games are scheduled today or nbascore cannot locate them.\n The latest game I can find was on {}:\n".format(str(datetime.datetime.strptime(getClosestDate()[0], "%Y%m%d"))[0:10])
-            response = gameFinder(response,0,now=getClosestDate()[0])
-            response += "\nAlso, the next game will be on {}:\n".format(str(datetime.datetime.strptime(getClosestDate()[1], "%Y%m%d"))[0:10])
-            response = gameFinder(response,0,now=getClosestDate()[1])
+        try:
+            if now == getClosestDate()[0]:
+                response = "All games today:"+"\n"
+                response = gameFinder(response,0)
+            else:
+                print(getClosestDate())
+                response = "No games are scheduled today or nbascore cannot locate them.\n\n The latest game I can find was on {}:\n".format(str(datetime.datetime.strptime(getClosestDate()[0], "%Y%m%d"))[0:10])
+                response = gameFinder(response,0,now=getClosestDate()[0])
+                response += "\n\nAlso, the next game will be on {}:\n".format(str(datetime.datetime.strptime(getClosestDate()[1], "%Y%m%d"))[0:10])
+                response = gameFinder(response,0,now=getClosestDate()[1])
+        except:
+            response='Error:'
 
    
 
@@ -265,8 +278,12 @@ def handle_command(command, channel):
 if __name__ == "__main__":
     try:
         if slack_client.rtm_connect(auto_reconnect=True,with_team_state=False):
-            
-            print("Starter Bot connected and running!")
+
+            if str(sys.argv[1]) == 'test':
+                print('Test phase')
+                x = gameFinder('test\n',0,now=getClosestDate()[1])
+
+            print("nbascore bot is connected and running!")
             # Read bot's user ID by calling Web API method `auth.test`
 
             starterbot_id = slack_client.api_call("auth.test")["user_id"]
