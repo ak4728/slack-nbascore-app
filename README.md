@@ -1,5 +1,5 @@
 # slack-nbascore-app
-Slack application for live NBA scores
+Slack application for live NBA scores. Automatic reporting every day at 9 PM.
 
 ## Sample commands
 
