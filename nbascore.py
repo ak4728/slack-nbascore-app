@@ -67,7 +67,6 @@ def getStandings(conference):
         Career results can be added in the future
     """
     conference = conference.lower()
-    t = PrettyTable(['Team', 'W-L'])
     now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]
     url = "http://data.nba.net/data/10s/prod/v1/current/standings_conference.json".format(now)
     try:
@@ -75,50 +74,46 @@ def getStandings(conference):
             data = json.loads(url2.read().decode())
             teamList=data['league']['standard']['conference'][conference]
             response = "{} Conference Standings\n".format(conference.capitalize())
-            fields= [
-                        {
-                            "type": "mrkdwn",
-                            "text": "*Teamname*"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "*W-L*"
-                        }
-                    ]
-            for team in teamList:
-                response = response +  "{}   \t |{}-{}|\n".format(str(teams.find_team_name_by_id(team['teamId'])['full_name']),str(team['win']),str(team['loss']))   
-                a,b =   str(teams.find_team_name_by_id(team['teamId'])['full_name']), '{}-{}'.format(str(team['win']),str(team['loss']))
-                print(a,b)
-                x = {"type": a,"text": b}
-                fields.append(json.loads(json.dumps(x)))
             blocks = [
                         {
                             "type": "section",
                             "text": {
-                                "text": "A message *with some bold text* and _some italicized text_.",
+                                "text": "Conference Standings:",
                                 "type": "mrkdwn"
                             },
                             "fields": [
                                 {
                                     "type": "mrkdwn",
-                                    "text": "*Priority*"
+                                    "text": "*Team*"
                                 },
                                 {
                                     "type": "mrkdwn",
-                                    "text": "*Type*"
-                                },
-                                {
-                                    "type": "plain_text",
-                                    "text": "High"
-                                },
-                                {
-                                    "type": "plain_text",
-                                    "text": "String"
+                                    "text": "*W-L*"
                                 }
                             ]
                         }
                     ]
-            print(blocks['fields'])
+            # This is to get around the limit of 10 items in a block table
+            # I converted the type to text added new lines :)
+            t= ""
+            scores = ""
+            for team in teamList:
+                tname = str(teams.find_team_name_by_id(team['teamId'])['full_name'])
+                t = t + str(tname)
+                t = t + "\n"
+                sc = str(team['win'])+str(" - ")+str(team['loss']) 
+                scores = scores+ sc
+                scores = scores +'\n'
+            x = {
+                    "type": "plain_text",
+                    "text": t
+                }
+            blocks[0]['fields'].append(x)
+            x = {
+                    "type": "plain_text",
+                    "text": scores
+                }
+            blocks[0]['fields'].append(x)
     except:
         response = '\nEither nbascore cannot locate standings or the season has not started yet.'
     return response,blocks
