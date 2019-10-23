@@ -30,7 +30,7 @@ MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 def post_message(msg, recipient):
     return self.slack_client.api_call(
         "chat.postMessage",
-        channel='test',
+        channel='goygoy',
         text=msg,
         as_user=True
     )
@@ -42,7 +42,7 @@ def post_message_to_channel(response):
     response = gameFinder(response,0)
     slack_client.api_call(
         "chat.postMessage",
-        channel='test',
+        channel='goygoy',
         text=response or default_response,
         as_user=True
     )
@@ -69,17 +69,59 @@ def getStandings(conference):
     conference = conference.lower()
     t = PrettyTable(['Team', 'W-L'])
     now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]
-    url = "http://data.nba.net/data/10s/prod/v1/{}/standings_conference.json".format(now)
+    url = "http://data.nba.net/data/10s/prod/v1/current/standings_conference.json".format(now)
     try:
         with urllib.request.urlopen(url) as url2:
             data = json.loads(url2.read().decode())
             teamList=data['league']['standard']['conference'][conference]
             response = "{} Conference Standings\n".format(conference.capitalize())
+            fields= [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Teamname*"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*W-L*"
+                        }
+                    ]
             for team in teamList:
-                response = response +  "{}   \t |{}-{}|\n".format(str(teams.find_team_name_by_id(team['teamId'])['full_name']),str(team['win']),str(team['loss']))      
+                response = response +  "{}   \t |{}-{}|\n".format(str(teams.find_team_name_by_id(team['teamId'])['full_name']),str(team['win']),str(team['loss']))   
+                a,b =   str(teams.find_team_name_by_id(team['teamId'])['full_name']), '{}-{}'.format(str(team['win']),str(team['loss']))
+                print(a,b)
+                x = {"type": a,"text": b}
+                fields.append(json.loads(json.dumps(x)))
+            blocks = [
+                        {
+                            "type": "section",
+                            "text": {
+                                "text": "A message *with some bold text* and _some italicized text_.",
+                                "type": "mrkdwn"
+                            },
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Priority*"
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": "*Type*"
+                                },
+                                {
+                                    "type": "plain_text",
+                                    "text": "High"
+                                },
+                                {
+                                    "type": "plain_text",
+                                    "text": "String"
+                                }
+                            ]
+                        }
+                    ]
+            print(blocks['fields'])
     except:
         response = '\nEither nbascore cannot locate standings or the season has not started yet.'
-    return response
+    return response,blocks
 
 def getPlayer(playerId,fullname):
     """
@@ -144,6 +186,7 @@ def gameFinder(response, deltahours, teamid='missing', now = str(datetime.dateti
     return response
 
 def getClosestDate(url = "http://data.nba.net/data/10s/prod/v1/calendar.json", now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]):
+    now = str(datetime.datetime.now()-datetime.timedelta(hours=0)).replace('-','')[0:8]
     with urllib.request.urlopen(url) as url2:
         data = json.loads(url2.read().decode())
         beforeGames = {}
@@ -226,7 +269,9 @@ def handle_command(command, channel):
         try:
             conference = command.rsplit(" ")[1]
             response = "{} Conference Standings".format(conference.upper())
-            response = response + getStandings(conference)
+            r, b = getStandings(conference)
+            response = response + r
+            blocks = b
         except:
             response= "Please provide a conference name."
         
@@ -269,7 +314,8 @@ def handle_command(command, channel):
     slack_client.api_call(
         "chat.postMessage",
         channel=channel,
-        text=response or default_response
+        text=response or default_response,
+        blocks=blocks
     )
 
 
@@ -278,11 +324,10 @@ def handle_command(command, channel):
 if __name__ == "__main__":
     try:
         if slack_client.rtm_connect(auto_reconnect=True,with_team_state=False):
-
             if str(sys.argv[1]) == 'test':
                 print('Test phase')
-                x = gameFinder('test\n',0,now=getClosestDate()[1])
-
+                #x = gameFinder('test\n',0,now=getClosestDate()[1])
+                x = getStandings('east')
             print("nbascore bot is connected and running!")
             # Read bot's user ID by calling Web API method `auth.test`
 
