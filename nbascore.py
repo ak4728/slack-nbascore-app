@@ -22,6 +22,7 @@ EXAMPLE_COMMAND = "do"
 TUKUR_COMMAND = "tukur"
 SPORTS_COMMAND = "nba"
 TEAM_COMMAND = "team"
+FAV_TEAM_COMMAND = "nets"
 PLAYER_COMMAND = "player"
 STANDINGS_COMMAND = "standings"
 SELECT_COMMAND = "select"
@@ -104,6 +105,7 @@ def getStandings(conference):
                 sc = str(team['win'])+str(" - ")+str(team['loss']) 
                 scores = scores+ sc
                 scores = scores +'\n'
+
             x = {
                     "type": "plain_text",
                     "text": t
@@ -277,12 +279,17 @@ def handle_command(command, channel):
     elif command.startswith(EXAMPLE_COMMAND):
         response = "Sure...write some more code then I can do that!"
     # Team score calls
-    elif command.startswith(TEAM_COMMAND):
+    elif command.lower().startswith((TEAM_COMMAND,FAV_TEAM_COMMAND)):
         print("Request for 1 Team.")
         try:
-            tname = command.rsplit(" ")
-            response = "Team result:"+"\n"
-            nbateam = teams.find_teams_by_full_name(tname[1])
+            if command.lower().startswith(TEAM_COMMAND):
+                tname = command.rsplit(" ")
+                response = "Team result:"+"\n"
+                nbateam = teams.find_teams_by_full_name(tname[1])
+            else:
+                tname = command
+                response = "Team result:"+"\n"
+                nbateam = teams.find_teams_by_full_name(tname)
             teamid =  str(nbateam[0]['id'])
             response = gameFinder(response,0,teamid)
         except:
@@ -304,14 +311,21 @@ def handle_command(command, channel):
             response='Error:'
 
    
-
-    # Sends the response back to the channel
-    slack_client.api_call(
-        "chat.postMessage",
-        channel=channel,
-        text=response or default_response,
-        blocks=blocks
-    )
+    try:
+        # Sends the response back to the channel
+        slack_client.api_call(
+            "chat.postMessage",
+            channel=channel,
+            text=response or default_response,
+            blocks=blocks
+        )
+    except:
+        # Sends the response back to the channel
+        slack_client.api_call(
+            "chat.postMessage",
+            channel=channel,
+            text=response or default_response
+        )
 
 
 
