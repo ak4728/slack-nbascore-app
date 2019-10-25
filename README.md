@@ -8,7 +8,7 @@ Slack application for live NBA scores. Automatic reporting every day at 9 PM.
 
 ![@nbascore nba](https://i.imgur.com/rT6uSZ8.png)
 
-**@nbascore team X**
+**@nbascore team X (nets)**
 > Retrieves the score of the scheduled games for the team X.
 
 ![@nbascore team pacers](https://i.imgur.com/pUIy2uy.png)
