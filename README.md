@@ -1,4 +1,4 @@
-# slack-nbascore-app
+# Slack NBA score bot
 Slack application for live NBA scores. Automatic reporting every day at 9 PM.
 
 ## Sample commands
